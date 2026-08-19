@@ -244,6 +244,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--gold);
 .photo-card img { width: 100%; height: 100%; display: block; object-fit: cover; pointer-events: none; }
 .photo-card span { position: absolute; z-index: 2; left: 13px; bottom: 11px; color: rgba(255,255,255,.75); font: 9px ui-sans-serif, system-ui, sans-serif; letter-spacing: .2em; }
 .carousel-glow { position: absolute; left: 50%; top: 50%; width: 60%; height: 35%; border-radius: 50%; background: rgba(173,17,51,.22); filter: blur(65px); transform: translate(-50%,-50%); }
+.scroll-orbit { position: absolute; z-index: 4; left: 50%; bottom: 34px; display: flex; align-items: center; gap: 12px; color: rgba(255,247,237,.38); font: 9px ui-sans-serif,system-ui,sans-serif; letter-spacing: .2em; transform: translateX(-50%); white-space: nowrap; }
+.scroll-orbit-label { color: var(--gold); opacity: .76; }
+.scroll-orbit i { display: block; width: 112px; height: 1px; overflow: hidden; background: rgba(255,255,255,.14); }
+.scroll-orbit i b { display: block; width: 100%; height: 100%; transform-origin: left center; background: linear-gradient(90deg, var(--rose), var(--gold)); box-shadow: 0 0 12px rgba(233,189,116,.7); transition: transform .18s ease-out; }
 
 .gallery-controls { position: absolute; z-index: 4; right: clamp(24px, 8vw, 120px); bottom: 52px; display: flex; align-items: center; gap: 18px; }
 .gallery-controls button { width: 45px; height: 45px; padding: 0; border: 1px solid rgba(233,189,116,.32); border-radius: 50%; color: var(--gold); background: rgba(25,4,10,.6); cursor: pointer; transition: background .25s ease, transform .25s ease; }
@@ -301,6 +305,7 @@ footer span { color: var(--gold); font: 17px Georgia,serif; }
   .carousel-stage { --radius: 460px; width: 94vw; height: min(55vh, 530px); margin-top: 14px; }
   .photo-ring { width: 160px; height: 235px; margin: -117px 0 0 -80px; }
   .interaction-tip { display: none; }
+  .scroll-orbit { bottom: 23px; }
 }
 
 @media (max-width: 640px) {
@@ -320,6 +325,8 @@ footer span { color: var(--gold); font: 17px Georgia,serif; }
   .photo-ring { top: 48%; width: 135px; height: 200px; margin: -100px 0 0 -67.5px; }
   .gallery-controls { left: 50%; right: auto; bottom: 27px; transform: translateX(-50%); }
   .gallery-controls button { width: 41px; height: 41px; }
+  .scroll-orbit { bottom: 79px; gap: 8px; font-size: 8px; letter-spacing: .12em; }
+  .scroll-orbit i { width: 72px; }
   .love-note { min-height: 66vh; }
   .love-note blockquote { font-size: clamp(30px, 9vw, 43px); }
   .lightbox { padding: 55px 15px 90px; }

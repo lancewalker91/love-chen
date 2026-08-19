@@ -248,26 +248,47 @@ export default function Home() {
   const [rotation, setRotation] = useState(0);
   const [tilt, setTilt] = useState(-6);
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [heartRain, setHeartRain] = useState(0);
   const [loveLevel, setLoveLevel] = useState(0);
   const pointer = useRef({ x: 0, y: 0, rotation: 0, tilt: -6 });
   const dragging = useRef(false);
   const moved = useRef(false);
+  const galleryRef = useRef<HTMLElement>(null);
+  const scrollFrame = useRef<number | null>(null);
   const step = 360 / photos.length;
 
   useEffect(() => {
-    if (intro !== "done" || paused || lightbox !== null) return;
-    const timer = window.setInterval(() => {
-      setActive((current) => {
-        const next = (current + 1) % photos.length;
-        setRotation(-next * step);
-        return next;
+    if (intro !== "done") return;
+
+    const syncToScroll = () => {
+      if (scrollFrame.current !== null) return;
+      scrollFrame.current = window.requestAnimationFrame(() => {
+        scrollFrame.current = null;
+        const section = galleryRef.current;
+        if (!section || dragging.current || lightbox !== null) return;
+        const start = section.offsetTop - 36;
+        const distance = Math.max(section.offsetHeight - window.innerHeight, 1);
+        const progress = Math.max(0, Math.min(1, (window.scrollY - start) / distance));
+        const nextRotation = -progress * 720;
+        const nextActive = ((Math.round(-nextRotation / step) % photos.length) + photos.length) % photos.length;
+        setScrollProgress(progress);
+        setRotation(nextRotation);
+        setActive(nextActive);
       });
-    }, 4200);
-    return () => window.clearInterval(timer);
-  }, [intro, lightbox, paused, step]);
+    };
+
+    syncToScroll();
+    window.addEventListener("scroll", syncToScroll, { passive: true });
+    window.addEventListener("resize", syncToScroll);
+    return () => {
+      window.removeEventListener("scroll", syncToScroll);
+      window.removeEventListener("resize", syncToScroll);
+      if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
+      scrollFrame.current = null;
+    };
+  }, [intro, lightbox, step]);
 
   useEffect(() => {
     if (lightbox === null) return;
@@ -306,6 +327,7 @@ export default function Home() {
     const normalized = (index + photos.length) % photos.length;
     setActive(normalized);
     setRotation(-normalized * step);
+    setScrollProgress((normalized / photos.length) / 2);
   };
 
   const pointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -313,7 +335,6 @@ export default function Home() {
     moved.current = false;
     pointer.current = { x: event.clientX, y: event.clientY, rotation, tilt };
     event.currentTarget.setPointerCapture(event.pointerId);
-    setPaused(true);
   };
 
   const pointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -329,7 +350,7 @@ export default function Home() {
     dragging.current = false;
     const nearest = ((Math.round(-rotation / step) % photos.length) + photos.length) % photos.length;
     setActive(nearest);
-    window.setTimeout(() => setPaused(false), 700);
+    setScrollProgress((nearest / photos.length) / 2);
   };
 
   return (
@@ -374,11 +395,11 @@ export default function Home() {
           <span>20 MEMORIES</span>
         </nav>
 
-        <section className="gallery-section" aria-labelledby="gallery-title">
+        <section className="gallery-section" ref={galleryRef} aria-labelledby="gallery-title">
           <header className="gallery-header">
             <p className="eyebrow">FU CHEN, OUR LITTLE UNIVERSE</p>
             <h2 id="gallery-title">付晨，爱是我们<br /><em>收藏的每一帧</em></h2>
-            <p>左右拖动相册，让属于我们的每一段回忆重新走到你面前。</p>
+            <p>向下滚动，让回忆随你的步伐转动；也可以拖动环形相册，重新遇见每一帧。</p>
             <button className="firework-button" type="button" onClick={celebrate}><span>✦</span> 再为付晨放一次烟花</button>
           </header>
 
@@ -391,8 +412,6 @@ export default function Home() {
             onPointerMove={pointerMove}
             onPointerUp={pointerUp}
             onPointerCancel={pointerUp}
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => { if (!dragging.current) setPaused(false); }}
             onKeyDown={(event) => {
               if (event.key === "ArrowLeft") selectPhoto(active - 1);
               if (event.key === "ArrowRight") selectPhoto(active + 1);
@@ -416,12 +435,18 @@ export default function Home() {
             </div>
           </div>
 
+          <div className="scroll-orbit" aria-hidden="true">
+            <span className="scroll-orbit-label">SCROLL TO ROTATE</span>
+            <i><b style={{ transform: `scaleX(${Math.max(.08, scrollProgress)})` }} /></i>
+            <span>{String(active + 1).padStart(2, "0")} / {photos.length}</span>
+          </div>
+
           <div className="gallery-controls">
             <button type="button" onClick={() => selectPhoto(active - 1)} aria-label="上一张">←</button>
             <div className="counter"><strong>{String(active + 1).padStart(2, "0")}</strong><i /><span>{photos.length}</span></div>
             <button type="button" onClick={() => selectPhoto(active + 1)} aria-label="下一张">→</button>
           </div>
-          <p className="interaction-tip">拖动旋转 · 点击照片放大 · 键盘方向键切换</p>
+          <p className="interaction-tip">向下滚动旋转 · 拖动微调 · 点击照片放大 · 键盘方向键切换</p>
         </section>
 
         <section className="love-note" aria-label="七夕祝福">
