@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build static site
-        run: npm run build:pages
+      - name: Check and build static site
+        run: npm run check:pages
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

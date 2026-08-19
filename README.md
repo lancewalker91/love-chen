@@ -1,100 +1,68 @@
-# vinext-starter
+# 晨晨的七夕花园
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+送给付晨（晨晨）的七夕互动页面：3D 玫瑰开场、Canvas 烟花与心形粒子、滚动驱动的 3D 环形相册、灯箱和三击彩蛋。页面使用 React 19、Vinext、Vite 与原生 CSS/Canvas，兼容桌面端、手机端和微信内置浏览器。
 
-## Prerequisites
+## 本地预览
 
-- Node.js `>=22.13.0`
-
-## Quick Start
+项目要求 Node.js 22.13 或更高版本。依赖已安装时直接运行：
 
 ```bash
-npm install
 npm run dev
+```
+
+访问 <http://localhost:3007>。开发服务绑定 `0.0.0.0`，同一局域网内的手机也可通过电脑 IP 和 `3007` 端口预览。
+
+## 更新照片
+
+本地照片默认从 `/Users/litao/Downloads/七夕快乐` 读取：
+
+```bash
+npm run photos:sync
+```
+
+也可以传入另一个文件夹：
+
+```bash
+npm run photos:sync -- /绝对路径/照片文件夹
+```
+
+同步脚本会：
+
+- 读取 JPG、JPEG、PNG、HEIC 和 HEIF；
+- 按照片创建时间（缺失时使用修改时间）排序；
+- 使用 macOS 自带的 `sips` 转换为 JPG；
+- 将最长边限制为 1800px，JPEG 质量设为 78；
+- 原子替换 `public/photos`，依次输出 `01.jpg`、`02.jpg`……；
+- 自动生成 `app/photo-manifest.json`，页面不写死照片数量。
+
+该同步步骤只在 macOS 本地运行。生成后的 JPG 和清单会进入代码仓库，GitHub Actions 不需要访问本机照片目录。
+
+## 验证
+
+```bash
 npm run build
+npm run build:pages
+npm run check:pages
 ```
 
-This starter does not use `wrangler.jsonc`.
+`check:pages` 会执行 Pages 专用类型检查、ESLint、静态构建和资源一致性测试。
 
-## Included Shape
+本地开发服务运行时，还可使用已安装的 Google Chrome 执行移动端浏览器冒烟测试：
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run test:browser
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+该测试会模拟 375px 微信浏览器视口，并验证无横向溢出、滚动进度、照片切换、灯箱和三击彩蛋。
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+## GitHub Pages
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+`.github/workflows/deploy-pages.yml` 在 `main` 分支有新提交时自动构建并发布 `pages-dist`。自定义域名由 `public/CNAME` 保留为：
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+```text
+chen.litao.ink
+```
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+DNS 需配置 CNAME 指向 `lancewalker91.github.io`。GitHub Pages 的 HTTPS 强制设置属于仓库后台配置，不由此代码仓库控制。
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+当前协作约定：本地修改完成后先通过 `http://localhost:3007` 预览；只有在明确收到“更新到服务器”指令后，才提交并推送到 `main`。

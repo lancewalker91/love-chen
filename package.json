@@ -6,14 +6,18 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
+    "dev": "node scripts/dev.mjs",
     "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
     "build:pages": "vite build --config vite.pages.config.ts",
+    "photos:sync": "node scripts/sync-photos.mjs",
+    "typecheck:pages": "tsc --noEmit -p tsconfig.pages.json",
+    "check:pages": "npm run typecheck:pages && npm run lint && npm run build:pages && node --test tests/pages.test.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build:pages && node --test tests/pages.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
-    "sync:photos": "node scripts-sync-photos.mjs"
+    "sync:photos": "npm run photos:sync"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
