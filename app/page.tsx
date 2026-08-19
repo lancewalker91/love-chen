@@ -7,11 +7,12 @@ import {
   useRef,
   useState,
 } from "react";
+import { photoFiles } from "./photos";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
 
-const photos = Array.from({ length: 20 }, (_, index) => ({
-  src: `/photos/${String(index + 1).padStart(2, "0")}.jpg`,
+const photos = photoFiles.map((file, index) => ({
+  src: `/photos/${file}`,
   alt: `珍藏的回忆照片 ${index + 1}`,
 }));
 
@@ -376,15 +377,15 @@ export default function Home() {
         <button className="skip-intro" type="button" onClick={() => setIntro("done")}>跳过开场</button>
         <div className="intro-copy">
           <p className="eyebrow">FOR FU CHEN · 七夕限定</p>
-          <h1>付晨，<em>这束花只为你盛开</em></h1>
+          <h1>晨晨，<em>这束花只为你盛开</em></h1>
           <p className="intro-wish">今夜鹊桥相逢，我把星河、烟火、玫瑰和所有偏爱，都装进这一刻送给你。</p>
           <button className="receive-button" type="button" onClick={openGift}>
-            <span>付晨，收下这束花</span><span aria-hidden="true">↗</span>
+            <span>晨晨，收下这束花</span><span aria-hidden="true">↗</span>
           </button>
           <p className="firework-hint">点击后，请看一场只属于你的烟火</p>
         </div>
         <RoseBouquet />
-        <p className="opening-message"><strong>付晨</strong>，花与烟火都为你盛开</p>
+        <p className="opening-message"><strong>晨晨</strong>，花与烟火都为你盛开</p>
         <div className="scroll-hint"><span /> 轻触开启回忆</div>
       </section>
 
@@ -392,15 +393,15 @@ export default function Home() {
         <nav className="topline" aria-label="页面信息">
           <span>FU CHEN · QIXI 2026</span>
           <button className="topline-heart" type="button" onClick={celebrate} aria-label="为付晨放烟花">♥</button>
-          <span>20 MEMORIES</span>
+          <span>{photos.length} MEMORIES</span>
         </nav>
 
         <section className="gallery-section" ref={galleryRef} aria-labelledby="gallery-title">
           <header className="gallery-header">
             <p className="eyebrow">FU CHEN, OUR LITTLE UNIVERSE</p>
-            <h2 id="gallery-title">付晨，爱是我们<br /><em>收藏的每一帧</em></h2>
+            <h2 id="gallery-title">晨晨，爱是我们<br /><em>收藏的每一帧</em></h2>
             <p>向下滚动，让回忆随你的步伐转动；也可以拖动环形相册，重新遇见每一帧。</p>
-            <button className="firework-button" type="button" onClick={celebrate}><span>✦</span> 再为付晨放一次烟花</button>
+            <button className="firework-button" type="button" onClick={celebrate}><span>✦</span> 再为晨晨放一次烟花</button>
           </header>
 
           <div
@@ -451,7 +452,7 @@ export default function Home() {
 
         <section className="love-note" aria-label="七夕祝福">
           <p>TO FU CHEN, MY DEAREST</p>
-          <blockquote>“付晨，愿往后的每个朝朝暮暮，<br />都有你，也有我们。”</blockquote>
+          <blockquote>“晨晨，愿往后的每个朝朝暮暮，<br />都有你，也有我们。”</blockquote>
           <div className="love-meter-wrap">
             <button className="love-meter" type="button" onClick={fillLove} style={{ "--love": `${(loveLevel / 3) * 100}%` } as CSSVars}>
               <i className="love-meter-fill" />
@@ -460,7 +461,7 @@ export default function Home() {
             </button>
             <small>连续点击三次，解锁给付晨的隐藏惊喜</small>
           </div>
-          <span>付晨，七夕快乐，岁岁年年</span>
+          <span>晨晨，七夕快乐，岁岁年年</span>
         </section>
         <footer><span>∞</span> THE STORY CONTINUES</footer>
       </div>
