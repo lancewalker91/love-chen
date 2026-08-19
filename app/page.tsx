@@ -23,6 +23,13 @@ const roseLayout = [
   [19, 75, .72, -8, .72], [49, 80, .75, 0, .78], [77, 79, .62, -18, .84],
 ];
 
+const loveMessages = [
+  "点一下，把心动送给付晨",
+  "心动升温中 · 33%",
+  "只对付晨心动 · 66%",
+  "爱意满格 · 永远喜欢付晨",
+];
+
 function ParticleField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -34,12 +41,18 @@ function ParticleField() {
 
     type Particle = {
       x: number; y: number; vx: number; vy: number; size: number;
-      alpha: number; life: number; burst: boolean; color: string;
+      alpha: number; life: number; kind: "ambient" | "spark" | "confetti"; color: string;
+    };
+    type Firework = {
+      x: number; y: number; targetY: number; speed: number; color: string;
+      trail: Array<{ x: number; y: number }>;
     };
     let width = 0;
     let height = 0;
     let animationFrame = 0;
     let particles: Particle[] = [];
+    let fireworks: Firework[] = [];
+    const launchTimers: number[] = [];
 
     const resize = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -58,41 +71,104 @@ function ParticleField() {
         size: .5 + Math.random() * 1.7,
         alpha: .12 + Math.random() * .45,
         life: 1,
-        burst: false,
+        kind: "ambient",
         color: Math.random() > .2 ? "#f4d8a3" : "#f4a1ae",
       }));
     };
 
-    const burst = () => {
-      const centerX = width * .5;
-      const centerY = height * .5;
-      for (let index = 0; index < 190; index += 1) {
+    const addExplosion = (x: number, y: number, color: string, amount = 90) => {
+      for (let index = 0; index < amount; index += 1) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 1.2 + Math.random() * 7;
+        const speed = 1.1 + Math.random() * 5.8;
         particles.push({
-          x: centerX + (Math.random() - .5) * 80,
-          y: centerY + (Math.random() - .5) * 80,
+          x,
+          y,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 1,
-          size: 1 + Math.random() * 3.2,
+          vy: Math.sin(angle) * speed,
+          size: .7 + Math.random() * 2.8,
           alpha: 1,
           life: 1,
-          burst: true,
-          color: ["#f7c6cc", "#e62e52", "#ffd993", "#ffffff"][index % 4],
+          kind: "spark",
+          color: index % 8 === 0 ? "#fff7e8" : color,
+        });
+      }
+    };
+
+    const burst = () => addExplosion(width * .5, height * .48, "#e62e52", 180);
+
+    const launchFirework = (position: number, color: string, heightRatio: number) => {
+      fireworks.push({
+        x: width * position,
+        y: height + 24,
+        targetY: height * heightRatio,
+        speed: 7.3 + Math.random() * 2.4,
+        color,
+        trail: [],
+      });
+    };
+
+    const fireworkShow = () => {
+      const show = [
+        [.22, "#ff335f", .27], [.72, "#ffd27d", .2], [.48, "#ff90a6", .14],
+        [.84, "#ff5c7b", .35], [.12, "#fff0c4", .38], [.61, "#d65cff", .29],
+      ] as const;
+      show.forEach(([position, color, target], index) => {
+        launchTimers.push(window.setTimeout(() => launchFirework(position, color, target), index * 310));
+      });
+    };
+
+    const heartBurst = () => {
+      const centerX = width * (.35 + Math.random() * .3);
+      const centerY = height * (.3 + Math.random() * .15);
+      for (let index = 0; index < 80; index += 1) {
+        const t = (index / 80) * Math.PI * 2;
+        const heartX = 16 * Math.sin(t) ** 3;
+        const heartY = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        particles.push({
+          x: centerX, y: centerY,
+          vx: heartX * .24, vy: heartY * .24,
+          size: 1.2 + Math.random() * 1.6,
+          alpha: 1, life: 1, kind: "spark", color: index % 3 ? "#ff4f72" : "#ffd9a0",
         });
       }
     };
 
     const draw = () => {
       context.clearRect(0, 0, width, height);
+      fireworks = fireworks.filter((firework) => {
+        firework.trail.push({ x: firework.x, y: firework.y });
+        if (firework.trail.length > 9) firework.trail.shift();
+        firework.y -= firework.speed;
+        context.beginPath();
+        firework.trail.forEach((point, index) => {
+          if (index === 0) context.moveTo(point.x, point.y);
+          else context.lineTo(point.x, point.y);
+        });
+        context.strokeStyle = firework.color;
+        context.globalAlpha = .75;
+        context.lineWidth = 1.6;
+        context.shadowBlur = 14;
+        context.shadowColor = firework.color;
+        context.stroke();
+        context.beginPath();
+        context.arc(firework.x, firework.y, 2.4, 0, Math.PI * 2);
+        context.fillStyle = "#fff";
+        context.fill();
+        if (firework.y <= firework.targetY) {
+          addExplosion(firework.x, firework.y, firework.color, 115);
+          return false;
+        }
+        return true;
+      });
+
       particles = particles.filter((particle) => particle.life > 0);
       particles.forEach((particle) => {
         particle.x += particle.vx;
         particle.y += particle.vy;
-        if (particle.burst) {
-          particle.vy += .035;
-          particle.vx *= .995;
-          particle.life -= .008;
+        if (particle.kind !== "ambient") {
+          particle.vy += particle.kind === "spark" ? .025 : .05;
+          particle.vx *= .992;
+          particle.life -= particle.kind === "spark" ? .009 : .014;
           particle.alpha = Math.max(0, particle.life);
         } else if (particle.y < -10) {
           particle.y = height + 10;
@@ -115,10 +191,15 @@ function ParticleField() {
     draw();
     window.addEventListener("resize", resize);
     window.addEventListener("qixi-burst", burst);
+    window.addEventListener("qixi-fireworks", fireworkShow);
+    window.addEventListener("qixi-heart-burst", heartBurst);
     return () => {
       window.cancelAnimationFrame(animationFrame);
+      launchTimers.forEach((timer) => window.clearTimeout(timer));
       window.removeEventListener("resize", resize);
       window.removeEventListener("qixi-burst", burst);
+      window.removeEventListener("qixi-fireworks", fireworkShow);
+      window.removeEventListener("qixi-heart-burst", heartBurst);
     };
   }, []);
 
@@ -128,6 +209,12 @@ function ParticleField() {
 function RoseBouquet() {
   return (
     <div className="gift-bouquet" aria-label="一大束正在绽放的红玫瑰">
+      <div className="bouquet-aura" aria-hidden="true">
+        <i /><i /><i />
+        <span className="orbit-star orbit-star-one">✦</span>
+        <span className="orbit-star orbit-star-two">✧</span>
+        <span className="orbit-star orbit-star-three">✦</span>
+      </div>
       <div className="bouquet-flowers">
         {roseLayout.map(([x, y, scale, depth, delay], index) => (
           <div
@@ -151,7 +238,7 @@ function RoseBouquet() {
       </div>
       <div className="bouquet-paper paper-left" />
       <div className="bouquet-paper paper-right" />
-      <div className="bouquet-ribbon"><span>Love you</span></div>
+      <div className="bouquet-ribbon"><span>To 付晨</span></div>
     </div>
   );
 }
@@ -163,6 +250,8 @@ export default function Home() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [heartRain, setHeartRain] = useState(0);
+  const [loveLevel, setLoveLevel] = useState(0);
   const pointer = useRef({ x: 0, y: 0, rotation: 0, tilt: -6 });
   const dragging = useRef(false);
   const moved = useRef(false);
@@ -191,11 +280,26 @@ export default function Home() {
     return () => window.removeEventListener("keydown", close);
   }, [lightbox]);
 
+  const celebrate = () => {
+    window.dispatchEvent(new Event("qixi-fireworks"));
+    window.dispatchEvent(new Event("qixi-heart-burst"));
+    setHeartRain((current) => current + 1);
+  };
+
   const openGift = () => {
     if (intro !== "waiting") return;
     setIntro("opening");
-    window.dispatchEvent(new Event("qixi-burst"));
-    window.setTimeout(() => setIntro("done"), 1450);
+    celebrate();
+    window.setTimeout(() => window.dispatchEvent(new Event("qixi-burst")), 520);
+    window.setTimeout(() => setIntro("done"), 3350);
+  };
+
+  const fillLove = () => {
+    setLoveLevel((current) => {
+      const next = Math.min(3, current + 1);
+      if (next === 3) window.setTimeout(celebrate, 120);
+      return next;
+    });
   };
 
   const selectPhoto = (index: number) => {
@@ -231,34 +335,51 @@ export default function Home() {
   return (
     <main className="love-page">
       <ParticleField />
+      {heartRain > 0 && (
+        <div className="heart-rain" key={heartRain} aria-hidden="true">
+          {Array.from({ length: 38 }, (_, index) => (
+            <span
+              key={index}
+              style={{
+                "--left": `${(index * 37) % 100}%`,
+                "--delay": `${(index % 11) * .11}s`,
+                "--drift": `${((index % 7) - 3) * 18}px`,
+                "--size": `${12 + (index % 5) * 5}px`,
+              } as CSSVars}
+            >{index % 4 === 0 ? "✦" : "♥"}</span>
+          ))}
+        </div>
+      )}
 
       <section className={`intro intro-${intro}`} aria-hidden={intro === "done"}>
         <button className="skip-intro" type="button" onClick={() => setIntro("done")}>跳过开场</button>
         <div className="intro-copy">
-          <p className="eyebrow">七夕 · 岁岁相伴</p>
-          <h1>有一束花，<em>想亲手送给你</em></h1>
-          <p className="intro-wish">今夜鹊桥相逢，我把星河、玫瑰和所有偏爱，都装进这一刻。</p>
+          <p className="eyebrow">FOR FU CHEN · 七夕限定</p>
+          <h1>付晨，<em>这束花只为你盛开</em></h1>
+          <p className="intro-wish">今夜鹊桥相逢，我把星河、烟火、玫瑰和所有偏爱，都装进这一刻送给你。</p>
           <button className="receive-button" type="button" onClick={openGift}>
-            <span>收下这束花</span><span aria-hidden="true">↗</span>
+            <span>付晨，收下这束花</span><span aria-hidden="true">↗</span>
           </button>
+          <p className="firework-hint">点击后，请看一场只属于你的烟火</p>
         </div>
         <RoseBouquet />
-        <p className="opening-message">花已为你盛开</p>
+        <p className="opening-message"><strong>付晨</strong>，花与烟火都为你盛开</p>
         <div className="scroll-hint"><span /> 轻触开启回忆</div>
       </section>
 
       <div className={`memory-world ${intro === "done" ? "is-visible" : ""}`} aria-hidden={intro !== "done"}>
         <nav className="topline" aria-label="页面信息">
-          <span>QIXI · 2026</span>
-          <span className="topline-heart">♥</span>
+          <span>FU CHEN · QIXI 2026</span>
+          <button className="topline-heart" type="button" onClick={celebrate} aria-label="为付晨放烟花">♥</button>
           <span>20 MEMORIES</span>
         </nav>
 
         <section className="gallery-section" aria-labelledby="gallery-title">
           <header className="gallery-header">
-            <p className="eyebrow">OUR LITTLE UNIVERSE</p>
-            <h2 id="gallery-title">爱，是我们共同<br /><em>收藏的每一帧</em></h2>
-            <p>左右拖动相册，让每一段回忆重新走到你面前。</p>
+            <p className="eyebrow">FU CHEN, OUR LITTLE UNIVERSE</p>
+            <h2 id="gallery-title">付晨，爱是我们<br /><em>收藏的每一帧</em></h2>
+            <p>左右拖动相册，让属于我们的每一段回忆重新走到你面前。</p>
+            <button className="firework-button" type="button" onClick={celebrate}><span>✦</span> 再为付晨放一次烟花</button>
           </header>
 
           <div
@@ -304,9 +425,17 @@ export default function Home() {
         </section>
 
         <section className="love-note" aria-label="七夕祝福">
-          <p>TO MY DEAREST</p>
-          <blockquote>“愿往后的每个朝朝暮暮，<br />都有你，也有我们。”</blockquote>
-          <span>七夕快乐，岁岁年年</span>
+          <p>TO FU CHEN, MY DEAREST</p>
+          <blockquote>“付晨，愿往后的每个朝朝暮暮，<br />都有你，也有我们。”</blockquote>
+          <div className="love-meter-wrap">
+            <button className="love-meter" type="button" onClick={fillLove} style={{ "--love": `${(loveLevel / 3) * 100}%` } as CSSVars}>
+              <i className="love-meter-fill" />
+              <span>{loveMessages[loveLevel]}</span>
+              <b aria-hidden="true">♥</b>
+            </button>
+            <small>连续点击三次，解锁给付晨的隐藏惊喜</small>
+          </div>
+          <span>付晨，七夕快乐，岁岁年年</span>
         </section>
         <footer><span>∞</span> THE STORY CONTINUES</footer>
       </div>
@@ -317,7 +446,7 @@ export default function Home() {
           <button className="lightbox-arrow lightbox-prev" type="button" onClick={(event) => { event.stopPropagation(); setLightbox((lightbox - 1 + photos.length) % photos.length); }} aria-label="上一张">←</button>
           <figure onClick={(event) => event.stopPropagation()}>
             <img src={photos[lightbox].src} alt={photos[lightbox].alt} />
-            <figcaption><span>{String(lightbox + 1).padStart(2, "0")} / {photos.length}</span> 每一帧，都是喜欢你的证明</figcaption>
+            <figcaption><span>{String(lightbox + 1).padStart(2, "0")} / {photos.length}</span> 付晨，每一帧都是喜欢你的证明</figcaption>
           </figure>
           <button className="lightbox-arrow lightbox-next" type="button" onClick={(event) => { event.stopPropagation(); setLightbox((lightbox + 1) % photos.length); }} aria-label="下一张">→</button>
         </div>

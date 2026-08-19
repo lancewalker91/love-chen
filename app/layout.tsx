@@ -6,9 +6,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const incomingHeaders = await headers();
   const host = incomingHeaders.get("host") ?? "localhost:3000";
   const protocol = host.startsWith("localhost") ? "http" : "https";
-  const image = `${protocol}://${host}/og.png`;
-  const title = "七夕快乐 · 今夜星河只为你";
-  const description = "一束玫瑰，一册回忆，愿朝朝暮暮皆是你。";
+  const image = `${protocol}://${host}/og-fuchen.png`;
+  const title = "付晨，七夕快乐 · 今夜星河只为你";
+  const description = "送给付晨的一束玫瑰、一场烟火与一本会旋转的回忆相册。";
 
   return {
     title,
